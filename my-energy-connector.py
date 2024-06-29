@@ -8,6 +8,7 @@ def convert_from_sqlite_to_mongo(args):
     print('convert_from_sqlite_to_mongo')
     print(f'source : {args.source}')
     print(f'target : {args.target}')
+    print('--------------------------')
 
     # connect to sqlite database (file)
     conn = sqlite3.connect(args.source)
@@ -36,9 +37,9 @@ def convert_from_sqlite_to_mongo(args):
             "kwh_281"   : row[4],
             "kwh_282"   : row[5],
             "growatt_power"       : row[13],
-            "growatt_power_total" : row[14]
+            "growatt_power_today" : row[14]
         }
-        #print(energy_record)
+
         energy_records.append(energy_record)
 
     print(f"inserting records into {args.target}...")

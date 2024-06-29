@@ -4,6 +4,14 @@ import sqlite3
 from pymongo import MongoClient
 from datetime import datetime
 
+def get_mongodb_collection(args):
+    # connect to mongodb
+    client = MongoClient(args.target)
+    db = client[args.database]
+    collection = db[args.collection]
+    return collection
+
+
 def convert_from_sqlite_to_mongo(args):
     print('convert_from_sqlite_to_mongo')
     print(f'source : {args.source}')
@@ -15,9 +23,7 @@ def convert_from_sqlite_to_mongo(args):
     cur = conn.cursor()
 
     # connect to mongodb
-    client = MongoClient(args.target)
-    db = client["my_energy"]
-    collection = db["energy_records"]
+    collection = get_mongodb_collection(args)
 
     # execute query
     print(f'getting records from {args.source}...')
@@ -50,6 +56,53 @@ def convert_from_sqlite_to_mongo(args):
     # close sqlite database
     conn.close()
 
+
+def query_mongo(args):
+    # reconstruction this data:
+    # http://192.168.178.64:81/my_energy/api/getseries?from=2024-06-21&to=2024-06-22&resolution=Hour
+
+
+    print('query_mongo')
+    collection = get_mongodb_collection(args)
+
+    # Define the start and end dates
+    start_date = datetime(2024, 6, 21, 0, 0, 0)
+    end_date = datetime(2024, 6, 21, 23, 59, 59)
+
+    # Query the collection for documents within the specified time range
+    query = {
+        'timestamp': {
+            '$gte': start_date,
+            '$lte': end_date
+        }
+    }
+
+    # Execute the query and retrieve the results
+    #count = collection.count_documents(query)
+
+    results = list(collection.find(query).sort('timestamp', 1))
+    # Iterate over the results and print them
+    #for document in results:
+    #    print(document)
+
+    # Get the first record in the time range
+    #first_record = collection.find(query).sort('timestamp', 1).limit(1)[0]
+    first_record = results[0]
+
+    # Get the last record in the time range
+    #last_record = collection.find(query).sort('timestamp', -1).limit(1)[0]
+    last_record = results[-1]
+
+    # Subtract the values of the last record from the values in the first record
+    fields_to_subtract = ['gas', 'kwh_181', 'kwh_182', 'kwh_281', 'kwh_282']  # List of fields to subtract
+
+    result = {}
+    for field in fields_to_subtract:
+        result[field] = last_record[field] - first_record[field]
+
+    # Print the result
+    print(result)
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     def get_arguments(parser):
@@ -80,7 +133,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
     parser.add_argument("--command",
                         default="update-latest",
-                        help="update,sqlite-to-mongo")
+                        help="sqlite-to-mongo, update-latest, query-mongo")
 
     parser.add_argument("--source",
                         default="./my_energy.sqlite3",
@@ -88,8 +141,12 @@ if __name__ == '__main__':
     parser.add_argument("--target",
                         default="mongodb://middle-earth:27017/",
                         help="the target to write converted data to")
-
-
+    parser.add_argument("--database",
+                        default="my_energy",
+                        help="mongodb database")
+    parser.add_argument("--collection",
+                        default="energy_records",
+                        help="mongodb collection")
     parser.add_argument("--limit",
                         default="0",
                         help="max records to fetch")
@@ -98,9 +155,7 @@ if __name__ == '__main__':
                         default="1000",
                         help="number of records to post")
 
-    parser.add_argument("--collection",
-                        default=None,
-                        help="can be used as filter in ADEX backend and ADEX frontend")
+
 
     # All parameters in a file
     parser.add_argument('--argfile',
@@ -116,5 +171,6 @@ if __name__ == '__main__':
     if args.command == "sqlite-to-mongo":
         convert_from_sqlite_to_mongo(args)
 
-
+    if args.command == "query-mongo":
+        query_mongo(args)
 

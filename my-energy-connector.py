@@ -96,14 +96,17 @@ def convert_from_sqlite_to_mongo(args):
         delta_kwh_182 = row[3] - previous_row[3]
         delta_kwh_281 = row[4] - previous_row[4]
         delta_kwh_282 = row[5] - previous_row[5]
-        delta_netlow = delta_kwh_181 - delta_kwh_281
-        delta_nethigh = delta_kwh_182 - delta_kwh_282
-        delta_generation = delta_kwh_281 + delta_kwh_282
-        delta_gas = row[1] - previous_row[1]
+
+        delta_netlow = delta_kwh_181 - delta_kwh_281     # 8 verschil
+        delta_nethigh = delta_kwh_182 - delta_kwh_282    # OK
+        delta_generation = delta_kwh_281 + delta_kwh_282 # OK
+        delta_gas = row[1] - previous_row[1]             # OK
 
         growatt_power = row[13]
+
         if (growatt_power and growatt_power>0):
-            delta_consumption = delta_netlow + delta_nethigh + growatt_power
+            growatt_power = growatt_power / 12                               # seems OK, total power is ok
+            delta_consumption = delta_netlow + delta_nethigh + growatt_power # seems OK
         else:
             # old values, before the solar panel data was in the database
             delta_consumption = delta_kwh_181 + delta_kwh_182
@@ -115,7 +118,7 @@ def convert_from_sqlite_to_mongo(args):
             "kwh_182"   : row[3],
             "kwh_281"   : row[4],
             "kwh_282"   : row[5],
-            "growatt_power"       : row[13],
+            "growatt_power"       : growatt_power,
             "growatt_power_today" : row[14],
             "delta_netlow" : delta_netlow,
             "delta_nethigh": delta_nethigh,
@@ -136,100 +139,6 @@ def convert_from_sqlite_to_mongo(args):
 
     # close sqlite database
     conn.close()
-
-def query_mongo_tryout(args):
-    # reconstruction this data:
-    # http://192.168.178.64:81/my_energy/api/getseries?from=2024-06-21&to=2024-06-22&resolution=Hour
-
-
-    print('query_mongo')
-    collection = get_mongodb_collection(args)
-
-    # Define the start and end dates
-    start_date = datetime(2024, 6, 21, 0, 0, 0)
-    end_date = datetime(2024, 6, 22, 0, 0, 0)
-
-    # Query the collection for documents within the specified time range
-    query = {
-        'timestamp': {
-            '$gte': start_date,
-            '$lte': end_date
-        }
-    }
-
-    # Execute the query and retrieve the results
-    count = collection.count_documents(query)
-    print(f'{count} results')
-
-    results = list(collection.find(query).sort('timestamp', 1))
-
-    # get the total sums (delta's) in this time range
-    first_record = results[0]
-    last_record = results[-1]
-
-    # Subtract the values of the last record from the values in the first record
-    fields_to_subtract = ['gas', 'kwh_181', 'kwh_182', 'kwh_281', 'kwh_282']  # List of fields to subtract
-
-    deltas = {}
-    for field in fields_to_subtract:
-        deltas[field] = last_record[field] - first_record[field]
-
-    # Print the result
-    print(f'deltas: {deltas}')
-
-    delta_netlow = deltas['kwh_181'] - deltas['kwh_281']
-    print(f'netlow : {delta_netlow}')
-
-    delta_nethigh = deltas['kwh_182'] - deltas['kwh_282']
-    print(f'nethigh : {delta_nethigh}')
-
-    delta_generation = deltas['kwh_281'] + deltas['kwh_282']
-    print(f'generation : {delta_generation}')
-
-    # Aggregation pipeline
-    pipeline = [
-        {
-            '$group': {
-                '_id': {
-                    'year': {'$year': "$timestamp"},
-                    'month': {'$month': "$timestamp"},
-                    'day': {'$dayOfMonth': "$timestamp"},
-                    'hour': {'$hour': "$timestamp"}
-                },
-                'gas_values': {'$push': '$gas'}  # Accumulate values into an array
-            }
-        },
-        {
-            '$project': {
-                '_id': 0,
-                'timestamp': {
-                    '$dateFromParts': {
-                        'year': '$_id.year',
-                        'month': '$_id.month',
-                        'day': '$_id.day',
-                        'hour': '$_id.hour'
-                    }
-                },
-                'differences': {
-                    '$map': {
-                        'input': {'$range': [1, {'$size': '$gas_values'}]},
-                        'as': 'index',
-                        'in': {'$subtract': [{'$arrayElemAt': ['$gas_values', '$$index']},
-                                             {'$arrayElemAt': ['$gas_values', {'$subtract': ['$$index', 1]}]}]}
-                    }
-                }
-            }
-        },
-        {
-            '$sort': {'timestamp': 1}
-        }
-    ]
-    # Run the aggregation query
-    result = list(collection.aggregate(pipeline))
-
-    # Print the result
-    #for r in result:
-    #    print(r)
 
 
 def query_mongo_day(start,end,args):
@@ -295,14 +204,51 @@ def query_mongo_day(start,end,args):
             '$sort': {
                 '_id.hour': 1
             }
+        },
+        {
+            '$group': {
+                '_id': None,
+                'total_netlow': { '$sum': '$netlow' },
+                'total_nethigh': { '$sum': '$nethigh' },
+                'total_gas': { '$sum': '$gas' },
+                'total_consumption': { '$sum': '$consumption' },
+                'total_generation': { '$sum': '$generation' },
+                'total_growatt_power': { '$sum': '$growatt_power' },
+                'hourlyData': {
+                    '$push': {
+                        'hour': '$_id.hour',
+                        'netlow': '$netlow',
+                        'nethigh': '$nethigh',
+                        'gas': '$gas',
+                        'consumption': '$consumption',
+                        'generation': '$generation',
+                        'growatt_power': '$growatt_power'
+                    }
+                }
+            }
+        },
+        {
+            '$project': {
+                '_id': 0,
+                'total_netlow': 1,
+                'total_nethigh': 1,
+                'total_gas': 1,
+                'total_consumption': 1,
+                'total_generation': 1,
+                'total_growatt_power': 1,
+                'hourlyData': 1
+            }
         }
     ]
     # Run the aggregation query
-    result = list(collection.aggregate(pipeline))
+    results = list(collection.aggregate(pipeline))
 
     # Print the result
-    for r in result:
+    for r in results:
         print(r)
+        for hour in r['hourlyData']:
+            print(hour)
+
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':

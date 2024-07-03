@@ -231,17 +231,16 @@ def query_mongo_tryout(args):
     #for r in result:
     #    print(r)
 
-def query_mongo_day(args):
+
+def query_mongo_day(start,end,args):
 
     # reconstruction this data:
     # http://192.168.178.64:81/my_energy/api/getseries?from=2024-06-21&to=2024-06-22&resolution=Hour
+    print(f'query_mongo_day({start},{end})')
+    timestamp_start = datetime.strptime(start, '%Y-%m-%d %H:%M:%S')
+    timestamp_end = datetime.strptime(end, '%Y-%m-%d %H:%M:%S')
 
-    print('query_mongo_day')
     collection = get_mongodb_collection(args)
-
-    # Define the start and end dates
-    start_date = datetime(2024, 6, 21, 0, 0, 0)
-    end_date = datetime(2024, 6, 22, 0, 0, 0)
 
     # Query the collection for documents within the specified time range
     # Aggregation pipeline
@@ -249,8 +248,8 @@ def query_mongo_day(args):
         {
             '$match': {
                 'timestamp': {
-                    '$gte': datetime(2024, 6, 21, 0, 0, 0),
-                    '$lt': datetime(2024, 6, 22, 0, 0, 0)
+                    '$gte': timestamp_start,
+                    '$lt': timestamp_end
                 }
             }
         }, {
@@ -258,16 +257,39 @@ def query_mongo_day(args):
                 'hour': {
                     '$hour': '$timestamp'
                 },
-                'delta_gas': 1
+                'delta_netlow': 1,
+                'delta_nethigh': 1,
+                'delta_gas': 1,
+                'delta_consumption': 1,
+                'delta_generation': 1,
+                'growatt_power': 1,
+                'growatt_power_today': 1,
             }
         }, {
             '$group': {
                 '_id': {
                     'hour': '$hour'
                 },
-                'totalGas': {
+                'netlow': {
+                    '$sum': '$delta_netlow'
+                },
+                'nethigh': {
+                    '$sum': '$delta_nethigh'
+                },
+                'gas': {
                     '$sum': '$delta_gas'
+                },
+                'consumption': {
+                    '$sum': '$delta_consumption'
+                },
+                'generation': {
+                    '$sum': '$delta_generation'
+                },
+                'growatt_power': {
+                    # divide by 12?
+                    '$sum': '$growatt_power'
                 }
+
             }
         }, {
             '$sort': {
@@ -354,4 +376,4 @@ if __name__ == '__main__':
         query_mongo_tryout(args)
 
     if args.command == "query-mongo-day":
-        query_mongo_day(args)
+        query_mongo_day("2024-06-21 00:00:00","2024-06-22 00:00:00",args)

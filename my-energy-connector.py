@@ -249,6 +249,113 @@ def query_mongo_day(start,end,args):
         for hour in r['hourlyData']:
             print(hour)
 
+def query_mongo_month(start,end,args):
+
+    # reconstruction this data:
+    # http://192.168.178.64:81/my_energy/api/getseries?from=2024-06-21&to=2024-06-22&resolution=Hour
+    print(f'query_mongo_month({start},{end})')
+    timestamp_start = datetime.strptime(start, '%Y-%m-%d %H:%M:%S')
+    timestamp_end = datetime.strptime(end, '%Y-%m-%d %H:%M:%S')
+
+    collection = get_mongodb_collection(args)
+
+    # Query the collection for documents within the specified time range
+    # Aggregation pipeline
+    pipeline = [
+        {
+            '$match': {
+                'timestamp': {
+                    '$gte': timestamp_start,
+                    '$lt': timestamp_end
+                }
+            }
+        }, {
+            '$project': {
+                'day': {
+                    '$dayOfMonth': '$timestamp'
+                },
+                'delta_netlow': 1,
+                'delta_nethigh': 1,
+                'delta_gas': 1,
+                'delta_consumption': 1,
+                'delta_generation': 1,
+                'growatt_power': 1,
+                'growatt_power_today': 1,
+            }
+        }, {
+            '$group': {
+                '_id': {
+                    'day': '$day'
+                },
+                'netlow': {
+                    '$sum': '$delta_netlow'
+                },
+                'nethigh': {
+                    '$sum': '$delta_nethigh'
+                },
+                'gas': {
+                    '$sum': '$delta_gas'
+                },
+                'consumption': {
+                    '$sum': '$delta_consumption'
+                },
+                'generation': {
+                    '$sum': '$delta_generation'
+                },
+                'growatt_power': {
+                    '$sum': '$growatt_power'
+                }
+
+            }
+        }, {
+            '$sort': {
+                '_id.day': 1
+            }
+        },
+        {
+            '$group': {
+                '_id': None,
+                'total_netlow': { '$sum': '$netlow' },
+                'total_nethigh': { '$sum': '$nethigh' },
+                'total_gas': { '$sum': '$gas' },
+                'total_consumption': { '$sum': '$consumption' },
+                'total_generation': { '$sum': '$generation' },
+                'total_growatt_power': { '$sum': '$growatt_power' },
+                'dailyData': {
+                    '$push': {
+                        'day': '$_id.day',
+                        'netlow': '$netlow',
+                        'nethigh': '$nethigh',
+                        'gas': '$gas',
+                        'consumption': '$consumption',
+                        'generation': '$generation',
+                        'growatt_power': '$growatt_power'
+                    }
+                }
+            }
+        },
+        {
+            '$project': {
+                '_id': 0,
+                'total_netlow': 1,
+                'total_nethigh': 1,
+                'total_gas': 1,
+                'total_consumption': 1,
+                'total_generation': 1,
+                'total_growatt_power': 1,
+                'dailyData': 1
+            }
+        }
+    ]
+    # Run the aggregation query
+    results = list(collection.aggregate(pipeline))
+
+    # Print the result
+    for r in results:
+        print(r)
+        for day in r['dailyData']:
+            print(day)
+
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -318,8 +425,8 @@ if __name__ == '__main__':
     if args.command == "sqlite-to-mongo":
         convert_from_sqlite_to_mongo(args)
 
-    if args.command == "query-mongo":
-        query_mongo_tryout(args)
+    if args.command == "query-mongo-month":
+        query_mongo_month("2024-06-01 00:00:00","2024-07-01 00:00:00",args)
 
     if args.command == "query-mongo-day":
         query_mongo_day("2024-06-21 00:00:00","2024-06-22 00:00:00",args)

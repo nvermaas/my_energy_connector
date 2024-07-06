@@ -356,6 +356,153 @@ def query_mongo_month(start,end,args):
         for day in r['dailyData']:
             print(day)
 
+def get_series(args):
+
+    # reconstruction this data:
+    # http://192.168.178.64:81/my_energy/api/getseries?from=2024-06-21&to=2024-06-22&resolution=Hour
+
+
+    print(f'get_series({args.start},{args.end})')
+    timestamp_start = datetime.strptime(args.start, '%Y-%m-%d')
+    timestamp_end = datetime.strptime(args.end, '%Y-%m-%d')
+    interval = args.interval
+
+    collection = get_mongodb_collection(args)
+
+    # Query the collection for documents within the specified time range
+    # Aggregation pipeline
+    pipeline = [
+        {
+            '$match': {
+                'timestamp': {
+                    '$gte': timestamp_start,
+                    '$lt': timestamp_end
+                }
+            }
+        }, {
+            '$project': {
+                'day': {
+                    '$dayOfMonth': '$timestamp'
+                },
+                'delta_netlow': 1,
+                'delta_nethigh': 1,
+                'delta_gas': 1,
+                'delta_consumption': 1,
+                'delta_generation': 1,
+                'growatt_power': 1,
+                'growatt_power_today': 1,
+            }
+        }, {
+            '$group': {
+                '_id': {
+                    'day': '$day'
+                },
+                'netlow': {
+                    '$sum': '$delta_netlow'
+                },
+                'nethigh': {
+                    '$sum': '$delta_nethigh'
+                },
+                'gas': {
+                    '$sum': '$delta_gas'
+                },
+                'consumption': {
+                    '$sum': '$delta_consumption'
+                },
+                'generation': {
+                    '$sum': '$delta_generation'
+                },
+                'growatt_power': {
+                    '$sum': '$growatt_power'
+                }
+
+            }
+        }, {
+            '$sort': {
+                '_id.day': 1
+            }
+        },
+    {
+        '$group': {
+            '_id': None,
+            'netlow': {
+                '$push': '$netlow'
+            },
+            'nethigh': {
+                '$push': '$nethigh'
+            },
+            'gas': {
+                '$push': '$gas'
+            },
+            'consumption': {
+                '$push': '$consumption'
+            },
+            'generation': {
+                '$push': '$generation'
+            },
+            'growatt_power': {
+                '$push': '$growatt_power'
+            },
+            'total_netlow': { '$sum': '$netlow' },
+            'total_nethigh': { '$sum': '$nethigh' },
+            'total_gas': { '$sum': '$gas' },
+            'total_consumption': { '$sum': '$consumption' },
+            'total_generation': { '$sum': '$generation' },
+            'total_growatt_power': { '$sum': '$growatt_power' }
+        }
+    },
+    {
+        '$project': {
+            '_id': 0,
+            'data': [
+                {
+                    'data': '$netlow',
+                    'total': '$total_netlow',
+                    'type': 'NetLow',
+                    'energyType': 'NetLow'
+                },
+                {
+                    'data': '$nethigh',
+                    'total': '$total_nethigh',
+                    'type': 'NetHigh',
+                    'energyType': 'NetHigh'
+                },
+                {
+                    'data': '$gas',
+                    'total': '$total_gas',
+                    'type': 'Gas',
+                    'energyType': 'Gas'
+                },
+                {
+                    'data': '$consumption',
+                    'total': '$total_consumption',
+                    'type': 'Consumption',
+                    'energyType': 'Consumption'
+                },
+                {
+                    'data': '$generation',
+                    'total': '$total_generation',
+                    'type': 'Generation',
+                    'energyType': 'Generation'
+                },
+                {
+                    'data': '$growatt_power',
+                    'total': '$total_growatt_power',
+                    'type': 'Solar Panels'
+                }
+            ]
+        }
+    }
+    ]
+    # Run the aggregation query
+    results = list(collection.aggregate(pipeline))
+
+    # Print the result
+    for r in results:
+
+        for day in r['data']:
+            print(day)
+
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -401,6 +548,15 @@ if __name__ == '__main__':
     parser.add_argument("--collection",
                         default="energy_records",
                         help="mongodb collection")
+    parser.add_argument("--start",
+                        default="2024-06-21",
+                        help="start date")
+    parser.add_argument("--end",
+                        default="2024-06-22",
+                        help="end date")
+    parser.add_argument("--interval",
+                        default="Hour",
+                        help="Hour,Day")
     parser.add_argument("--limit",
                         default="0",
                         help="max records to fetch")
@@ -430,3 +586,6 @@ if __name__ == '__main__':
 
     if args.command == "query-mongo-day":
         query_mongo_day("2024-06-21 00:00:00","2024-06-22 00:00:00",args)
+
+    if args.command == "getseries":
+        get_series(args)

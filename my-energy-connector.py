@@ -1,15 +1,24 @@
 import os,sys,argparse
+from typing import Union
+
 import sqlite3
+import uvicorn
 
 from pymongo import MongoClient
+from pymongo.collection import Collection
+
 from datetime import datetime,timedelta,timezone
+from fastapi import FastAPI
+from fastapi.responses import ORJSONResponse
+
+class EnergyDB:
+    def __init__(self):
+        self.collection = MongoClient("mongodb://middle-earth:27017/")["my_energy"]["energy_records"]
+
 
 def get_mongodb_collection(args):
     # connect to mongodb
-    client = MongoClient(args.target_mongo)
-    db = client[args.database]
-    collection = db[args.collection]
-    return collection
+    return MongoClient(args.target_mongo)[args.database][args.collection]
 
 
 def convert_from_sqlite_to_mongo(args):
@@ -103,26 +112,23 @@ def convert_from_sqlite_to_mongo(args):
     conn.close()
 
 
-def get_series(args):
-
+def get_series(start,end,interval,collection):
     # reconstruction this data:
     # http://192.168.178.64:81/my_energy/api/getseries?from=2024-06-21&to=2024-06-22&resolution=Hour
 
-    print(f'get_series(from {args.start} to {args.end} per {args.interval})')
-    timestamp_start = datetime.strptime(args.start, '%Y-%m-%d')
-    timestamp_end = datetime.strptime(args.end, '%Y-%m-%d')
+    print(f'get_series(from {start} to {end} per {interval})')
+    timestamp_start = datetime.strptime(start, '%Y-%m-%d')
+    timestamp_end = datetime.strptime(end, '%Y-%m-%d')
 
     interval_operation = '$hour'
-    if args.interval.upper() == 'HOUR':
+    if interval.upper() == 'HOUR':
         interval_operation = '$hour'
-    elif args.interval.upper() == 'DAY':
+    elif interval.upper() == 'DAY':
         interval_operation = '$dayOfMonth'
-    elif args.interval.upper() == 'MONTH':
+    elif interval.upper() == 'MONTH':
         interval_operation = '$month'
-    elif args.interval.upper() == 'YEAR':
+    elif interval.upper() == 'YEAR':
         interval_operation = '$year'
-
-    collection = get_mongodb_collection(args)
 
     # Query the collection for documents within the specified time range
     # Aggregation pipeline
@@ -252,12 +258,18 @@ def get_series(args):
     # Run the aggregation query
     results = list(collection.aggregate(pipeline))
 
-    # Print the result
-    for r in results:
+    return results
 
-        for day in r['data']:
-            print(day)
+DB = EnergyDB()
+app = FastAPI(default_response_class=ORJSONResponse,port=8000)
 
+# http://localhost:8000/getseries/?start=2024-06-21&end=2024-06-22&interval=Hour
+@app.get('/{getseries}/')
+def getseries(start, end, interval):
+    return get_series(start,end,interval,DB.collection)
+
+def run_server(args):
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -321,17 +333,20 @@ if __name__ == '__main__':
 
     args = get_arguments(parser)
 
-    print(f"--- my_energy_connector (version 29 jun 2024 ---")
+    print(f"--- my_energy_connector (version 7 jul 2024 ---")
     print(args)
 
     if args.command == "sqlite-to-mongo":
         convert_from_sqlite_to_mongo(args)
 
-    if args.command == "query-mongo-month":
-        query_mongo_month("2024-06-01 00:00:00","2024-07-01 00:00:00",args)
-
-    if args.command == "query-mongo-day":
-        query_mongo_day("2024-06-21 00:00:00","2024-06-22 00:00:00",args)
-
     if args.command == "getseries":
-        get_series(args)
+        collection = get_mongodb_collection(args)
+        results = get_series(args.start,args.end,args.interval,collection)
+
+        # Print the result
+        for result in results:
+            for r in result['data']:
+                print(r)
+
+    if args.command == "runserver":
+        run_server(args)

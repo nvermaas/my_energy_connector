@@ -9,7 +9,7 @@ import uvicorn
 from datetime import datetime,timedelta
 
 from api import app
-from database import db
+from database.energy_db import DB
 
 def convert_from_sqlite_to_mongo(args):
     """
@@ -28,7 +28,7 @@ def convert_from_sqlite_to_mongo(args):
     cur = conn.cursor()
 
     # connect to mongodb
-    collection = db.get_mongodb_collection(args)
+    collection = DB.get_mongodb_collection(args)
 
     # execute query
     print(f'getting records from {args.source_sqlite}...')
@@ -174,8 +174,7 @@ if __name__ == '__main__':
         convert_from_sqlite_to_mongo(args)
 
     if args.command == "getseries":
-        collection = db.get_mongodb_collection(args)
-        results = db.DB.get_series(args.start,args.end,args.interval,collection)
+        results = DB.get_series(args.start,args.end,args.interval)
 
         # Print the result
         for result in results:

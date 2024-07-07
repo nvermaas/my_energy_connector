@@ -4,7 +4,7 @@ class EnergyDB:
     def __init__(self):
         self.collection = MongoClient("mongodb://middle-earth:27017/")["my_energy"]["energy_records"]
 
-    def get_series(self, start, end, interval, collection):
+    def get_series(self, start, end, interval):
         # reconstruction this data:
         # http://192.168.178.64:81/my_energy/api/getseries?from=2024-06-21&to=2024-06-22&resolution=Hour
 
@@ -148,13 +148,12 @@ class EnergyDB:
             }
         ]
         # Run the aggregation query
-        results = list(collection.aggregate(pipeline))
-
-        return results
+        return list(self.collection.aggregate(pipeline))
 
 
 def get_mongodb_collection(args):
     # connect to mongodb
     return MongoClient(args.target_mongo)[args.database][args.collection]
 
+# instantiate the database
 DB = EnergyDB()

@@ -12,7 +12,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -21,4 +21,4 @@ app.add_middleware(
 # http://localhost:8000/getseries/?start=2024-06-21&end=2024-06-22&interval=Hour
 @app.get('/my_energy/api2/{getseries}/')
 def getseries(start, end, interval):
-    return DB.get_series(start,end,interval)
+    return DB.get_series(start,end,interval)[0]

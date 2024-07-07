@@ -180,9 +180,9 @@ class EnergyDB:
                         interval_operation: '$timestamp'
                     },
                     'delta_netlow': 1,
+                    'delta_consumption': 1,
                     'delta_nethigh': 1,
                     'delta_gas': 1,
-                    'delta_consumption': 1,
                     'delta_generation': 1,
                     'growatt_power': 1,
                     'growatt_power_today': 1,
@@ -195,14 +195,14 @@ class EnergyDB:
                     'netlow': {
                         '$sum': '$delta_netlow'
                     },
+                    'consumption': {
+                        '$sum': '$delta_consumption'
+                    },
                     'nethigh': {
                         '$sum': '$delta_nethigh'
                     },
                     'gas': {
                         '$sum': '$delta_gas'
-                    },
-                    'consumption': {
-                        '$sum': '$delta_consumption'
                     },
                     'generation': {
                         '$sum': '$delta_generation'
@@ -223,14 +223,14 @@ class EnergyDB:
                     'netlow': {
                         '$push': '$netlow'
                     },
+                    'consumption': {
+                        '$push': '$consumption'
+                    },
                     'nethigh': {
                         '$push': '$nethigh'
                     },
                     'gas': {
                         '$push': '$gas'
-                    },
-                    'consumption': {
-                        '$push': '$consumption'
                     },
                     'generation': {
                         '$push': '$generation'
@@ -239,9 +239,9 @@ class EnergyDB:
                         '$push': '$growatt_power'
                     },
                     'total_netlow': {'$sum': '$netlow'},
+                    'total_consumption': {'$sum': '$consumption'},
                     'total_nethigh': {'$sum': '$nethigh'},
                     'total_gas': {'$sum': '$gas'},
-                    'total_consumption': {'$sum': '$consumption'},
                     'total_generation': {'$sum': '$generation'},
                     'total_growatt_power': {'$sum': '$growatt_power'}
                 }
@@ -257,6 +257,12 @@ class EnergyDB:
                             'energyType': 'NetLow'
                         },
                         {
+                            'data': '$consumption',
+                            'total': '$total_consumption',
+                            'type': 'Consumption',
+                            'energyType': 'Consumption'
+                        },
+                        {
                             'data': '$nethigh',
                             'total': '$total_nethigh',
                             'type': 'NetHigh',
@@ -269,16 +275,40 @@ class EnergyDB:
                             'energyType': 'Gas'
                         },
                         {
-                            'data': '$consumption',
-                            'total': '$total_consumption',
-                            'type': 'Consumption',
-                            'energyType': 'Consumption'
-                        },
-                        {
                             'data': '$generation',
                             'total': '$total_generation',
                             'type': 'Generation',
                             'energyType': 'Generation'
+                        },
+                        {
+                            'data': [0,0,0],
+                            'total': '0',
+                            'type': 'Temperature',
+                            'energyType': 'Temperature'
+                        },
+                        {
+                            'data': [0, 0, 0],
+                            'total': '0',
+                            'type': 'Rain',
+                            'energyType': 'Rain'
+                        },
+                        {
+                            'data': [0, 0, 0],
+                            'total': '0',
+                            'type': 'Wind Speed',
+                            'energyType': 'Wind Speed'
+                        },
+                        {
+                            'data': [0, 0, 0],
+                            'total': '0',
+                            'type': 'Wind Gust',
+                            'energyType': 'Wind Gust'
+                        },
+                        {
+                            'data': [0, 0, 0],
+                            'total': '0',
+                            'type': 'Wind Direction',
+                            'energyType': 'Wind Direction'
                         },
                         {
                             'data': '$growatt_power',
@@ -290,6 +320,7 @@ class EnergyDB:
             }
         ]
         # Run the aggregation query
+
         return list(self.collection.aggregate(pipeline))
 
 

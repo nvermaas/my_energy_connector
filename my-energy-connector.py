@@ -72,6 +72,9 @@ if __name__ == '__main__':
     if args.command == "sqlite-to-mongo":
         DB.convert_from_sqlite_to_mongo(args.sqlite_database)
 
+    if args.command == "update-to-now":
+        DB.update_to_now(args.sqlite_database)
+
     if args.command == "getseries":
         results = DB.get_series(args.start,args.end,args.interval)
 

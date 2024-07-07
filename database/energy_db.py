@@ -7,31 +7,7 @@ class EnergyDB:
         self.mongo_host = "mongodb://middle-earth:27017/"
         self.collection = MongoClient(self.mongo_host)["my_energy"]["energy_records"]
 
-    def convert_from_sqlite_to_mongo(self, sqlite_database):
-        """
-        Convert the full my_energy.sqlite database to mongodb.
-        This drops the existing collection in mongodb.
-        The whole operation takes about 30 seconds.
-        """
-
-        print('convert_from_sqlite_to_mongo')
-        print(f'sqlite : {sqlite_database}')
-        print(f'mongo  : {self.mongo_host}')
-        print('--------------------------')
-
-        # connect to sqlite database (file)
-        conn = sqlite3.connect(sqlite_database)
-        cur = conn.cursor()
-
-        # connect to mongodb
-        collection = self.collection
-
-        # execute query
-        print(f'getting records from {sqlite_database}...')
-        cur.execute('select * from my_energy_server_energyrecord order by timestamp')
-        rows = cur.fetchall()
-        print(f'{len(rows)} records read, creating json records...')
-
+    def convert_rows(self, rows):
         energy_records = []
         previous_row = None
         count_holes = 0
@@ -55,10 +31,10 @@ class EnergyDB:
             delta_kwh_281 = row[4] - previous_row[4]
             delta_kwh_282 = row[5] - previous_row[5]
 
-            delta_netlow = delta_kwh_181 - delta_kwh_281  # 8 verschil
-            delta_nethigh = delta_kwh_182 - delta_kwh_282  # OK
-            delta_generation = delta_kwh_281 + delta_kwh_282  # OK
-            delta_gas = row[1] - previous_row[1]  # OK
+            delta_netlow = delta_kwh_181 - delta_kwh_281
+            delta_nethigh = delta_kwh_182 - delta_kwh_282
+            delta_generation = delta_kwh_281 + delta_kwh_282
+            delta_gas = row[1] - previous_row[1]
 
             growatt_power = row[13]
 
@@ -89,11 +65,82 @@ class EnergyDB:
             previous_row = row
             next_expected_timestamp = timestamp + timedelta(minutes=5)
 
-        print(f'{count_holes} missing 5-min timestamps')
+        return energy_records,count_holes
+
+
+    def convert_from_sqlite_to_mongo(self, sqlite_database):
+        """
+        Convert the full my_energy.sqlite database to mongodb.
+        This drops the existing collection in mongodb.
+        The whole operation takes about 30 seconds.
+        """
+
+        print('convert_from_sqlite_to_mongo')
+        print(f'sqlite : {sqlite_database}')
+        print(f'mongo  : {self.mongo_host}')
+        print('--------------------------')
+
+        # connect to sqlite database (file)
+        conn = sqlite3.connect(sqlite_database)
+        cur = conn.cursor()
+
+        # execute query
+        print(f'getting records from {sqlite_database}...')
+        cur.execute('select * from my_energy_server_energyrecord order by timestamp')
+        rows = cur.fetchall()
+        print(f'{len(rows)} records read, creating json records...')
+
+        energy_records, holes = self.convert_rows(rows)
+        print(f'{holes} missing 5-min timestamps')
+
         print(f"inserting records into {self.mongo_host}...")
-        collection.drop()
-        result = collection.insert_many(energy_records)
+        self.collection.drop()
+        result = self.collection.insert_many(energy_records)
         print(f'{len(result.inserted_ids)} records inserted.')
+
+        # close sqlite database
+        conn.close()
+
+    def update_to_now(self, sqlite_database):
+        """
+        Update the records from the my_energy (sqlite) database into the mongodb database.
+        """
+
+        print('update_to_now')
+        print(f'sqlite : {sqlite_database}')
+        print(f'mongo  : {self.mongo_host}')
+        print('--------------------------')
+
+        # get the latest timestamp from the mongodb database
+        # Query the collection to find the latest timestamp
+        latest_document = self.collection.find().sort('timestamp', -1).limit(1)
+
+        # Extract the timestamp
+        latest_timestamp = None
+        for doc in latest_document:
+            latest_timestamp = doc['timestamp']
+
+        print("Latest Timestamp:", latest_timestamp)
+
+        # connect to sqlite database (file)
+        conn = sqlite3.connect(sqlite_database)
+        cur = conn.cursor()
+
+        # execute query
+        print(f'getting records from {sqlite_database}...')
+        query = f"select * from my_energy_server_energyrecord where timestamp > '{latest_timestamp}' order by timestamp"
+        cur.execute(query)
+        rows = cur.fetchall()
+        print(f'{len(rows)} new records read, creating json records...')
+
+        # loop through the rows and convert them to energy_records in json for storage in the mongo database
+        energy_records,holes = self.convert_rows(rows)
+
+        print(f'{holes} missing 5-min timestamps')
+        print(f"inserting records into {self.mongo_host}...")
+
+        result = self.collection.insert_many(energy_records)
+        print(f'{len(result.inserted_ids)} new records inserted.')
 
         # close sqlite database
         conn.close()

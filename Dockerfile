@@ -9,7 +9,7 @@ RUN mkdir /src
 WORKDIR /src
 COPY . /src/
 RUN pip install -r requirements.txt
-CMD ["uvicorn", "api.app:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "api.app:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8015"]
 
 # build the image like this:
 # docker build -t my-energy-connector:latest .

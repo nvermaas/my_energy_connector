@@ -13,7 +13,7 @@ def run_server(args):
     This can also be done like this:
     > python -m uvicorn --reload my-energy-connector:app --port 8000
     """
-    uvicorn.run(app.app, host="0.0.0.0", port=8000)
+    uvicorn.run(app.app, host="0.0.0.0", port=8015)
 
 
 # Press the green button in the gutter to run the script.

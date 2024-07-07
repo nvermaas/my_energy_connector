@@ -1,1 +1,1 @@
-python -m uvicorn --reload my-energy-connector:app --port 8000
+python -m uvicorn --reload api.app:app --port 8000

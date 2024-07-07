@@ -19,6 +19,6 @@ app.add_middleware(
 )
 
 # http://localhost:8000/getseries/?start=2024-06-21&end=2024-06-22&interval=Hour
-@app.get('/{getseries}/')
+@app.get('/my_energy/api2/{getseries}/')
 def getseries(start, end, interval):
     return DB.get_series(start,end,interval)

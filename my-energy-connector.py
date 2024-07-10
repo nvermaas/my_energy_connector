@@ -1,5 +1,8 @@
 import os,sys,argparse
-import uvicorn
+try:
+    import uvicorn
+except:
+    print('no uvicorn webserver')
 
 from api import app
 from database.energy_db import DB

@@ -20,4 +20,4 @@ jobs:
              git pull
              docker build -t my_energy_connector:latest .
              cd $HOME/shared
-             docker-compose  -p energy -f ./docker-compose-energy.yml up -d     
+             docker-compose -p energy -f ./docker-compose-energy.yml up -d     

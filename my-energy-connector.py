@@ -41,8 +41,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
     parser.add_argument("--command",
-                        default="update-latest",
-                        help="sqlite-to-mongo, update-latest, query-mongo")
+                        default=None,
+                        help="sqlite-to-mongo, update-to-now, getseries, runserver")
 
     parser.add_argument("--sqlite_database",
                         default="./my_energy.sqlite3",
@@ -66,7 +66,7 @@ if __name__ == '__main__':
 
     args = get_arguments(parser)
 
-    print(f"--- my_energy_connector (version: 10 jul 2024) ---")
+    print("--- my_energy_connector (version 10 jul 2024) ---")
     print(args)
 
     if args.command == "sqlite-to-mongo":

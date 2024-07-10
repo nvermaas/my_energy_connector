@@ -16,7 +16,7 @@ jobs:
           password: ${{ secrets.MY_PASSWORD }}
           #key: ${{ secrets.MY_PRIVATE_KEY }}
           script: |
-             cd ~/my_docker/OwlsNest
+             cd ~/my_docker/my_energy_connector
              git pull
              docker build -t my_energy_connector:latest .
              cd $HOME/shared

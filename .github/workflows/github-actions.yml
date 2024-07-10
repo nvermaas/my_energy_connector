@@ -1,0 +1,23 @@
+name: build-deploy
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: execute build & deploy procedure on middle-earth
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.MY_HOST }}
+          username: ${{ secrets.MY_USERNAME }}
+          password: ${{ secrets.MY_PASSWORD }}
+          #key: ${{ secrets.MY_PRIVATE_KEY }}
+          script: |
+             cd ~/my_docker/OwlsNest
+             git pull
+             docker build -t my_energy_connector:latest .
+             cd $HOME/shared
+             docker-compose  -p energy -f ./docker-compose-energy.yml up -d     

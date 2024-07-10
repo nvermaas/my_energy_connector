@@ -66,7 +66,7 @@ if __name__ == '__main__':
 
     args = get_arguments(parser)
 
-    print(f"--- my_energy_connector (version 7 jul 2024 ---")
+    print(f"--- my_energy_connector (version 10 jul 2024) ---")
     print(args)
 
     if args.command == "sqlite-to-mongo":

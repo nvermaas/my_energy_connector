@@ -1,10 +1,17 @@
+import os
 from pymongo import MongoClient
 import sqlite3
 from datetime import datetime,timedelta
 
 class EnergyDB:
     def __init__(self):
-        self.mongo_host = "mongodb://middle-earth:27017/"
+        try:
+            print(os.environ['DATABASE_URL'])
+            self.mongo_host = os.environ['DATABASE_URL']
+        except:
+            self.mongo_host = "mongodb://middle-earth:27017/"
+        print(f'host: {self.mongo_host}')
+
         self.collection = MongoClient(self.mongo_host)["my_energy"]["energy_records"]
 
     def convert_rows(self, rows):

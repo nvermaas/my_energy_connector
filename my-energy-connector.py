@@ -8,6 +8,13 @@ from api import app
 from database.energy_db import DB
 
 
+def scp_sqlite(remote_sqlite_database,local_sqlite_database):
+    print('scp_sqlite')
+    print(f'remote  : {remote_sqlite_database}')
+    print(f'local : {local_sqlite_database}')
+    print('--------------------------')
+
+
 def run_server(args):
     """
     > my-energy-connector --command runserver
@@ -50,7 +57,10 @@ if __name__ == '__main__':
     parser.add_argument("--sqlite_database",
                         default="./my_energy.sqlite3",
                         help="the source file or url to read data")
-
+    parser.add_argument("--remote_sqlite_database",
+                        default=None,
+                        help="remote sqlite database to scp to local location. "
+                             "Example: pi:my_password@raspiqbox:/home/pi/my_energy/my_energy.sqlite3")
     parser.add_argument("--start",
                         default="2024-06-21",
                         help="start date")
@@ -69,8 +79,11 @@ if __name__ == '__main__':
 
     args = get_arguments(parser)
 
-    print("--- my_energy_connector (version 10 jul 2024) ---")
+    print("--- my_energy_connector (version 17 jul 2024) ---")
     print(args)
+
+    if args.command == "scp-sqlite":
+        scp_sqlite(args.remote_sqlite_database, args.sqlite_database)
 
     if args.command == "sqlite-to-mongo":
         DB.convert_from_sqlite_to_mongo(args.sqlite_database)

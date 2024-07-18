@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: execute build & deploy procedure on middle-earth
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.MY_HOST }}
           username: ${{ secrets.MY_USERNAME }}

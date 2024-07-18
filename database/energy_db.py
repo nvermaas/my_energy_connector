@@ -1,6 +1,7 @@
 import os
 from pymongo import MongoClient
 import sqlite3
+import paramiko
 from datetime import datetime,timedelta
 
 class EnergyDB:
@@ -74,6 +75,41 @@ class EnergyDB:
 
         return energy_records,count_holes
 
+
+    def scp_sqlite(self,remote_sqlite_database,local_sqlite_database):
+        """
+        scp/ftp a remote sqlite_database to a local file
+        """
+        def parse_connect_string(url):
+            """
+            parse a connect string like: pi:my_password@raspiqbox:/home/pi/my_energy/my_energy.sqlite3
+            """
+            left = url.split('@')[0]
+            user = left.split(':')[0]
+            password = left.split(':')[1]
+
+            right = url.split('@')[1]
+            host = right.split("::")[0]
+            remote_path = right.split("::")[1]
+
+            return user, password, host, remote_path
+
+        print('scp_sqlite')
+        print(f'remote  : {remote_sqlite_database}')
+        print(f'local : {local_sqlite_database}')
+        print('--------------------------')
+        print('copying...')
+        username, password, hostname, remote_path = parse_connect_string(remote_sqlite_database)
+
+        ssh_client = paramiko.SSHClient()
+        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh_client.connect(hostname=hostname, port=22, username=username, password=password,
+                           allow_agent=False, look_for_keys=False)
+
+        ftp_client = ssh_client.open_sftp()
+        ftp_client.get(remote_path, local_sqlite_database)
+        ftp_client.close()
+        print('done.')
 
     def convert_from_sqlite_to_mongo(self, sqlite_database):
         """

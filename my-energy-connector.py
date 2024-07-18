@@ -4,15 +4,9 @@ try:
 except:
     print('no uvicorn webserver')
 
+
 from api import app
 from database.energy_db import DB
-
-
-def scp_sqlite(remote_sqlite_database,local_sqlite_database):
-    print('scp_sqlite')
-    print(f'remote  : {remote_sqlite_database}')
-    print(f'local : {local_sqlite_database}')
-    print('--------------------------')
 
 
 def run_server(args):
@@ -60,7 +54,7 @@ if __name__ == '__main__':
     parser.add_argument("--remote_sqlite_database",
                         default=None,
                         help="remote sqlite database to scp to local location. "
-                             "Example: pi:my_password@raspiqbox:/home/pi/my_energy/my_energy.sqlite3")
+                             "Example: pi:my_password@raspiqbox::/home/pi/my_energy/my_energy.sqlite3")
     parser.add_argument("--start",
                         default="2024-06-21",
                         help="start date")
@@ -83,12 +77,13 @@ if __name__ == '__main__':
     print(args)
 
     if args.command == "scp-sqlite":
-        scp_sqlite(args.remote_sqlite_database, args.sqlite_database)
+        DB.scp_sqlite(args.remote_sqlite_database, args.sqlite_database)
 
     if args.command == "sqlite-to-mongo":
         DB.convert_from_sqlite_to_mongo(args.sqlite_database)
 
     if args.command == "update-to-now":
+        DB.scp_sqlite(args.remote_sqlite_database, args.sqlite_database)
         DB.update_to_now(args.sqlite_database)
 
     if args.command == "getseries":

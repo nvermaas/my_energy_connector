@@ -46,7 +46,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
     parser.add_argument("--command",
                         default=None,
-                        help="sqlite-to-mongo, update-to-now, getseries, runserver")
+                        help="scp-sqlite, sqlite-to-mongo, update-to-now, scp-update-to-now, getseries, runserver")
 
     parser.add_argument("--sqlite_database",
                         default="./my_energy.sqlite3",
@@ -83,6 +83,9 @@ if __name__ == '__main__':
         DB.convert_from_sqlite_to_mongo(args.sqlite_database)
 
     if args.command == "update-to-now":
+        DB.update_to_now(args.sqlite_database)
+
+    if args.command == "scp-update-to-now":
         DB.scp_sqlite(args.remote_sqlite_database, args.sqlite_database)
         DB.update_to_now(args.sqlite_database)
 

@@ -18,4 +18,4 @@ CMD ["uvicorn", "api.app:app", "--proxy-headers", "--host", "0.0.0.0", "--port",
 # docker run -d --name my-energy-connector --mount type=bind,source=$HOME/shared,target=/shared -p 8015:8015 --restart always my-energy-connector:latest
 
 # log into the container
-# docker exec -it my-energy-connector sh
+# docker exec -it my_energy_connector sh

@@ -2,3 +2,4 @@ requests
 pymongo
 fastapi
 paramiko
+orjson

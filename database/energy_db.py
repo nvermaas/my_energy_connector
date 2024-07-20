@@ -189,6 +189,31 @@ class EnergyDB:
         conn.close()
 
 
+    def calculate_intervals(self, start, end, interval_type):
+        """
+        Calculate the number of intervals between start and end timestamps based on interval type.
+
+        Parameters:
+        start (datetime): Start timestamp.
+        end (datetime): End timestamp.
+        interval_type (str): Type of interval ('HOUR', 'DAY', 'MONTH', 'YEAR').
+
+        Returns:
+        int: Number of intervals.
+        """
+        total_intervals = 0
+        if interval_type == 'HOUR':
+            total_intervals = (end - start).total_seconds() // 3600
+        elif interval_type == 'DAY':
+            total_intervals = (end - start).days
+        elif interval_type == 'MONTH':
+            total_intervals = (end.year - start.year) * 12 + (end.month - start.month)
+        elif interval_type == 'YEAR':
+            total_intervals = end.year - start.year
+
+        return total_intervals
+
+
     def get_series(self, start, end, interval):
         # reconstruction this data:
         # http://192.168.178.64:81/my_energy/api/getseries?from=2024-06-21&to=2024-06-22&resolution=Hour
@@ -363,8 +388,22 @@ class EnergyDB:
             }
         ]
         # Run the aggregation query
+        results = list(self.collection.aggregate(pipeline))
 
-        return list(self.collection.aggregate(pipeline))
+        # Calculate the number of items, can be used to pad lists with 0's
+        expected_nr_of_items = int(self.calculate_intervals(timestamp_start, timestamp_end, interval.upper()))
+        print(f"Interval: {interval}, Number of items: {expected_nr_of_items}")
+
+        # pad missing data items with 0 values
+        for result in results:
+            for r in result['data']:
+                data = r['data']
+                found_nr_of_items = len(data)
+
+                for i in range(expected_nr_of_items-found_nr_of_items):
+                    data.append(0)
+
+        return results
 
 
 def get_mongodb_collection(args):

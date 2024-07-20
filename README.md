@@ -55,8 +55,7 @@ If omitted the default will be DATABASE_URL='mongodb://mongodb:27017/'
 ````
 
 ### update-to-now
-scp the `my_energy.sqlite3` database from its production environment on a raspberry pi.
-This takes about 10 seconds.
+Update the mongodb to the current timestamp with records from the my_energy.sqlite3 database, if available.
 
 ````commandline
 # python my-energy-connector.py --command update-to-now --sqlite_database /shared/my_energy.sqlite3
@@ -65,7 +64,7 @@ This takes about 10 seconds.
 The 2 previous commands combined, copying the latest sqlite database and update the mongodb to the current timestamp
 
 ````commandline
-# python my-energy-connector.py --command scp-update-to-now --remote_sqlite_database pi:<password>@192.168.178.64::/home/pi/my_energy/my_energy.sqlite3 --sqlite_database /shared/my_energy.sqlite3
+# python my-energy-connector.py --command scp-update-to-now --remote_sqlite_database pi:<password>>@192.168.178.64::/home/pi/my_energy/my_energy.sqlite3 --sqlite_database /shared/my_energy.sqlite3
 ````
 
 ### run-server
@@ -79,4 +78,5 @@ This command is automatically started when the container is spun up, so the webs
 Example of a call to the api
 ````commandline
 # python my-energy-connector.py --command getseries --start 2024-06-21 --end 2024-06-22 --interval Hour
+# python my-energy-connector.py --command getseries --start 2024-07-19 --end 2024-07-20 --interval Hour
 ````

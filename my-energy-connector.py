@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
     args = get_arguments(parser)
 
-    print("--- my_energy_connector (version 19 jul 2024) ---")
+    print("--- my_energy_connector (version 20 jul 2024) ---")
     print(args)
 
     if args.command == "scp-sqlite":

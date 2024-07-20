@@ -20,6 +20,5 @@ jobs:
              git pull
              docker build -t my_energy_connector:latest .
              cd $HOME/shared
-             docker stop my_energy_connector
-             docker rm my_energy_connector
+             docker rm -f my_energy_connector
              docker-compose -p energy -f ./docker-compose-energy.yml up -d     

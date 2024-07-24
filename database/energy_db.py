@@ -48,7 +48,7 @@ class EnergyDB:
 
             if (growatt_power and growatt_power > 0):
                 #growatt_power = growatt_power / 12  # seems OK, total power is ok
-                delta_consumption = delta_netlow + delta_nethigh + growatt_power  # seems OK
+                delta_consumption = delta_netlow + delta_nethigh + (growatt_power/12)  # seems OK
             else:
                 # old values, before the solar panel data was in the database
                 delta_consumption = delta_kwh_181 + delta_kwh_182

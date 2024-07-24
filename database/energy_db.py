@@ -47,7 +47,7 @@ class EnergyDB:
             growatt_power = row[13]
 
             if (growatt_power and growatt_power > 0):
-                growatt_power = growatt_power / 12  # seems OK, total power is ok
+                #growatt_power = growatt_power / 12  # seems OK, total power is ok
                 delta_consumption = delta_netlow + delta_nethigh + growatt_power  # seems OK
             else:
                 # old values, before the solar panel data was in the database
@@ -275,12 +275,18 @@ class EnergyDB:
                     'generation': {
                         '$sum': '$delta_generation'
                     },
-                    'growatt_power': {
+                    'summed_growatt_power': {
                         '$sum': '$growatt_power'
-                    }
+                    },
+                },
 
+            },{
+                '$addFields': {
+                    'growatt_power': {
+                        '$divide': ['$summed_growatt_power', 12]
+                    }
                 }
-            }, {
+            },{
                 '$sort': {
                     '_id.interval': 1
                 }

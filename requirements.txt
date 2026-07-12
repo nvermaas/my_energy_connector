@@ -3,3 +3,4 @@ pymongo
 fastapi
 paramiko
 orjson
+uvicorn

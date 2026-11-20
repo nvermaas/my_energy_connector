@@ -4,12 +4,7 @@ try:
     from fastapi.responses import ORJSONResponse
     from database.energy_db import DB
 
-    app = FastAPI(
-        title='my_energy_connector',
-        version="0.9.0",
-        description="backend API for mongo my_energy database",
-        default_response_class=ORJSONResponse,
-        port=8000)
+    app = FastAPI()
 
     app.add_middleware(
         CORSMiddleware,

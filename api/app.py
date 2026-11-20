@@ -24,5 +24,5 @@ try:
     def getseries(start, end, interval):
         return DB.get_series(start,end,interval)[0]
 
-except:
-    print('no fast api')
+except Exception as e:
+    print(e)

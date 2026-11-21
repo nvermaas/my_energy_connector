@@ -8,7 +8,7 @@ try:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["localhost:3000","192.168.178.56","192.168.178.57","uilennest.net","woodland"],
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
